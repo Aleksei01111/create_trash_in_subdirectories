@@ -9,6 +9,8 @@ pub enum MainWindowMessage {
 
     StartGenerateFiles,
 
+    FileName(String),
+    Depth(String),
 }
 
 pub enum MainWindowOutputMessage {
@@ -19,8 +21,9 @@ pub struct MainWindow {
     pub id: window::Id,
 
     pub path_to_directory_input: String,
+    pub depth_str: String,
+    pub depth: i32,
 
-    output_text: String,
     files_creator: FilesCreator,
 }
 
@@ -29,14 +32,17 @@ impl MainWindow {
         Self {
             id,
             path_to_directory_input: String::new(),
-            output_text: String::new(),
             files_creator: FilesCreator::new(),
+            depth_str: String::new(),
+            depth: 0,
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, MainWindowMessage> {
         container(column![
             text_input("Путь до папки", &self.path_to_directory_input).on_input(MainWindowMessage::PathToDirectory),
+            text_input("Имя для каждого файла", &self.files_creator.filename).on_input(MainWindowMessage::FileName),
+            text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
             button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
             self.scrollable_text_output()
         ].max_width(600).spacing(10))
@@ -51,7 +57,20 @@ impl MainWindow {
                 Task::none()
             },
             MainWindowMessage::StartGenerateFiles => {
-                self.files_creator.create_files(self.path_to_directory_input.clone(), 10, 0);
+                self.files_creator.out_string = String::new();
+                self.files_creator.create_files(self.path_to_directory_input.clone(), self.depth, 0);
+                Task::none()
+            }
+            MainWindowMessage::FileName(text) => {
+                self.files_creator.filename = text;
+                Task::none()
+            }
+            MainWindowMessage::Depth(text) => {
+                let parsed = text.parse::<i32>();
+                if !parsed.is_err() {
+                    self.depth = parsed.unwrap();
+                    self.depth_str = text;
+                }
                 Task::none()
             }
         }

@@ -12,12 +12,14 @@ fn main() -> iced::Result {
 
 pub struct FilesCreator {
     pub out_string: String,
+    pub filename: String,
 }
 
 impl FilesCreator {
     pub fn new() -> Self {
         Self {
             out_string: String::new(),
+            filename: String::new(),
         }
     }
 
@@ -45,7 +47,10 @@ impl FilesCreator {
             }
         }
 
-        let out = format!("file created in\t{}", path_to_directory.clone());
+        let path_to_file = format!("{}\\{}", path_to_directory, self.filename);
+
+        fs::File::create(&path_to_file);
+        let out = format!("file created in\t{}", path_to_file);
 
         if self.out_string.len() != 0 {
             self.out_string.push_str("\n");
