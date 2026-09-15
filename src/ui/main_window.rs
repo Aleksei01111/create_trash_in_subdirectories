@@ -1,4 +1,5 @@
-﻿use iced::widget::{text, column, text_input, button, container, scrollable};
+﻿use std::collections::HashMap;
+use iced::widget::{text, column, text_input, button, container, scrollable, row, space};
 use iced::{window, Task, Element};
 use iced::widget::scrollable::Direction;
 use crate::FilesCreator;
@@ -11,6 +12,10 @@ pub enum MainWindowMessage {
 
     FileName(String),
     Depth(String),
+
+    AddContentVariant,
+
+    ContentVariantEdit(i32, String),
 }
 
 pub enum MainWindowOutputMessage {
@@ -24,6 +29,8 @@ pub struct MainWindow {
     pub depth_str: String,
     pub depth: i32,
 
+    pub files_content_variants: HashMap<i32, String>,
+
     files_creator: FilesCreator,
 }
 
@@ -34,19 +41,17 @@ impl MainWindow {
             path_to_directory_input: String::new(),
             files_creator: FilesCreator::new(),
             depth_str: String::new(),
+            files_content_variants: HashMap::new(),
             depth: 0,
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, MainWindowMessage> {
-        container(column![
-            text_input("Путь до папки", &self.path_to_directory_input).on_input(MainWindowMessage::PathToDirectory),
-            text_input("Имя для каждого файла", &self.files_creator.filename).on_input(MainWindowMessage::FileName),
-            text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
-            button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
-            self.scrollable_text_output()
-        ].max_width(600).spacing(10))
-            .center_x(iced::Length::Fill)
+        container(row![
+            self.let_side(),
+            space().width(20),
+            self.right_side(),
+        ])
             .into()
     }
 
@@ -73,7 +78,43 @@ impl MainWindow {
                 }
                 Task::none()
             }
+            MainWindowMessage::AddContentVariant => {
+                let id = self.files_content_variants.len() as i32;
+                self.files_content_variants.insert(id, String::new());
+                Task::none()
+            }
+            MainWindowMessage::ContentVariantEdit(id, content) => {
+                if let Some(value) = self.files_content_variants.get_mut(&id) {
+                    *value = content;
+                }
+
+                Task::none()
+            }
         }
+    }
+
+    fn right_side(&self) -> Element<'_, MainWindowMessage> {
+        let content_variants = self.files_content_variants
+            .iter()
+            .map(|(id, content_variant)|
+                {
+                    text_input("содержание", content_variant).on_input(move |val| {MainWindowMessage::ContentVariantEdit(*id, val)}).into()
+                });
+
+        column![
+            button("Добавить").on_press(MainWindowMessage::AddContentVariant),
+            column(content_variants),
+        ].into()
+    }
+
+    fn let_side(&self) -> iced::Element<'_, MainWindowMessage> {
+        column![
+            text_input("Путь до папки", &self.path_to_directory_input).on_input(MainWindowMessage::PathToDirectory),
+            text_input("Имя для каждого файла", &self.files_creator.filename).on_input(MainWindowMessage::FileName),
+            text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
+            button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
+            self.scrollable_text_output()
+        ].spacing(10).into()
     }
 
     fn scrollable_text_output(&self) -> Element<'_, MainWindowMessage> {
