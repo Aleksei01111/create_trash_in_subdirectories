@@ -1,12 +1,14 @@
-﻿use iced::Task;
+﻿use iced::{window, Subscription, Task};
 use iced::window::Settings;
 use crate::ui::main_window::{MainWindow, MainWindowMessage, MainWindowOutputMessage};
-use iced::widget::{text, column, space};
+use iced::widget::{space};
 
 pub enum AppMessage {
-    MainWindowOpened(iced::window::Id),
+    MainWindowOpened(window::Id),
     MainWindowMessages(MainWindowMessage),
     MainWindowOutput(MainWindowOutputMessage),
+
+    WindowClosed(window::Id)
 }
 
 pub struct App {
@@ -27,12 +29,20 @@ impl App {
 
     pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
         match message {
-            AppMessage::MainWindowOpened(id) => {
+            AppMessage::MainWindowOpened(_) => {
                 Task::none()
             }
 
             AppMessage::MainWindowMessages(message) => {
                 self.main_window.update(message).map(AppMessage::MainWindowOutput)
+            }
+
+            AppMessage::WindowClosed(id) => {
+                if id == self.main_window.id {
+                    return iced::exit()
+                }
+
+                Task::none()
             }
         }
     }
@@ -43,5 +53,9 @@ impl App {
         }
 
         space().into()
+    }
+
+    pub fn subscription(&self) -> Subscription<AppMessage> {
+        window::close_events().map(AppMessage::WindowClosed)
     }
 }
