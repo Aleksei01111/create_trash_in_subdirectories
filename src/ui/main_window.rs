@@ -1,8 +1,13 @@
-﻿use iced::widget::space;
-use iced::{window, Task};
-use crate::ui::app::AppMessage;
+﻿use iced::widget::{text, column, text_input, button, container, scrollable};
+use iced::{window, Task, Element};
+use iced::widget::scrollable::Direction;
+use crate::FilesCreator;
 
+#[derive(Debug, Clone)]
 pub enum MainWindowMessage {
+    PathToDirectory(String),
+
+    StartGenerateFiles,
 
 }
 
@@ -12,20 +17,56 @@ pub enum MainWindowOutputMessage {
 
 pub struct MainWindow {
     pub id: window::Id,
+
+    pub path_to_directory_input: String,
+
+    output_text: String,
+    files_creator: FilesCreator,
 }
 
 impl MainWindow {
-    pub fn new(id: iced::window::Id) -> Self {
+    pub fn new(id: window::Id) -> Self {
         Self {
-            id
+            id,
+            path_to_directory_input: String::new(),
+            output_text: String::new(),
+            files_creator: FilesCreator::new(),
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, MainWindowMessage> {
-        space().into()
+        container(column![
+            text_input("Путь до папки", &self.path_to_directory_input).on_input(MainWindowMessage::PathToDirectory),
+            button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
+            self.scrollable_text_output()
+        ].max_width(600).spacing(10))
+            .center_x(iced::Length::Fill)
+            .into()
     }
 
     pub fn update(&mut self, message: MainWindowMessage) -> Task<MainWindowOutputMessage> {
-        Task::none()
+        match message {
+            MainWindowMessage::PathToDirectory(new_value) => {
+                self.path_to_directory_input = new_value;
+                Task::none()
+            },
+            MainWindowMessage::StartGenerateFiles => {
+                self.files_creator.create_files(self.path_to_directory_input.clone(), 10, 0);
+                Task::none()
+            }
+        }
+    }
+
+    fn scrollable_text_output(&self) -> Element<'_, MainWindowMessage> {
+        column![
+            scrollable(container(text(&self.files_creator.out_string)).padding(10)).direction({
+                let scrollbar = scrollable::Scrollbar::new();
+
+                Direction::Both {
+                    horizontal: scrollbar,
+                    vertical: scrollbar,
+                }
+            })
+        ].into()
     }
 }
