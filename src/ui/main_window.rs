@@ -2,7 +2,7 @@
 use iced::widget::{text, column, text_input, button, container, scrollable, row, space, checkbox};
 use iced::{window, Task, Element};
 use iced::widget::scrollable::Direction;
-use crate::FilesCreator;
+use crate::service::files_creator::FilesCreator;
 
 #[derive(Debug, Clone)]
 pub enum MainWindowMessage {
