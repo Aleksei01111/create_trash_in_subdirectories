@@ -7,6 +7,8 @@ use std::io::Write;
 use std::path::Path;
 use ui::app::App;
 use rand::RngExt;
+use std::thread;
+use std::time::Duration;
 
 fn main() -> iced::Result {
     iced::daemon(App::new, App::update, App::view)
@@ -17,6 +19,7 @@ fn main() -> iced::Result {
 pub struct FilesCreator {
     pub out_string: String,
     pub filename: String,
+    pub file_creation_delay_in_milliseconds: u64,
 }
 
 impl FilesCreator {
@@ -24,6 +27,7 @@ impl FilesCreator {
         Self {
             out_string: String::new(),
             filename: String::new(),
+            file_creation_delay_in_milliseconds: 100,
         }
     }
 
@@ -68,7 +72,7 @@ impl FilesCreator {
         }
         self.out_string.push_str(out.as_str());
 
-        println!();
+        thread::sleep(Duration::from_millis(self.file_creation_delay_in_milliseconds));
     }
 
     fn get_random_item(&self, items: &HashMap<i32, String>) -> String {

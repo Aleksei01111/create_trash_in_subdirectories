@@ -19,6 +19,8 @@ pub enum MainWindowMessage {
     ContentVariantDelete(i32),
 
     CloseAsDone(bool),
+
+    FileCreationDelay(String),
 }
 
 #[derive(PartialEq)]
@@ -30,9 +32,13 @@ pub struct MainWindow {
     pub id: window::Id,
 
     pub path_to_directory_input: String,
+
     pub depth_str: String,
     pub depth: i32,
+
     pub close_as_done: bool,
+
+    pub file_creation_delay_in_milliseconds_str: String,
 
     pub files_content_variants: HashMap<i32, String>,
 
@@ -46,6 +52,7 @@ impl MainWindow {
             path_to_directory_input: String::new(),
             files_creator: FilesCreator::new(),
             depth_str: String::new(),
+            file_creation_delay_in_milliseconds_str: String::new(),
             files_content_variants: HashMap::new(),
             depth: 0,
             close_as_done: false,
@@ -109,6 +116,14 @@ impl MainWindow {
                 self.close_as_done = new_value;
                 Task::none()
             }
+            MainWindowMessage::FileCreationDelay(new_value) => {
+                let parsed = new_value.parse::<u64>();
+                if !parsed.is_err() {
+                    self.files_creator.file_creation_delay_in_milliseconds = parsed.unwrap();
+                    self.file_creation_delay_in_milliseconds_str = new_value;
+                }
+                Task::none()
+            }
         }
     }
 
@@ -140,6 +155,7 @@ impl MainWindow {
             text_input("Имя для каждого файла", &self.files_creator.filename).on_input(MainWindowMessage::FileName),
             text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
             checkbox(self.close_as_done).label("Закрыть по завершении").on_toggle(MainWindowMessage::CloseAsDone),
+            text_input("Задержка между созданием файла (мс)", &self.file_creation_delay_in_milliseconds_str).on_input(MainWindowMessage::FileCreationDelay),
             button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
             self.scrollable_text_output()
         ].spacing(10).into()
