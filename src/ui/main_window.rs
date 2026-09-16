@@ -16,6 +16,8 @@ pub enum MainWindowMessage {
     AddContentVariant,
 
     ContentVariantEdit(i32, String),
+    ContentVariantDelete(i32),
+
 }
 
 pub enum MainWindowOutputMessage {
@@ -90,6 +92,10 @@ impl MainWindow {
 
                 Task::none()
             }
+            MainWindowMessage::ContentVariantDelete(id) => {
+                self.files_content_variants.remove(&id);
+                Task::none()
+            }
         }
     }
 
@@ -98,13 +104,21 @@ impl MainWindow {
             .iter()
             .map(|(id, content_variant)|
                 {
-                    text_input("содержание", content_variant).on_input(move |val| {MainWindowMessage::ContentVariantEdit(*id, val)}).into()
+                    row![
+                        text_input("содержание", content_variant).on_input(move |val| {MainWindowMessage::ContentVariantEdit(*id, val)}),
+                        button("Удалить").on_press(MainWindowMessage::ContentVariantDelete(*id)),
+                    ].into()
                 });
 
         column![
+            text("Варианты для содержания создаваемых файлов"),
             button("Добавить").on_press(MainWindowMessage::AddContentVariant),
-            column(content_variants),
-        ].into()
+            scrollable(
+                column(content_variants).spacing(5),
+            ),
+        ]
+            .spacing(10)
+            .into()
     }
 
     fn let_side(&self) -> iced::Element<'_, MainWindowMessage> {
