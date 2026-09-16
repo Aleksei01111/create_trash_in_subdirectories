@@ -65,7 +65,7 @@ impl MainWindow {
             },
             MainWindowMessage::StartGenerateFiles => {
                 self.files_creator.out_string = String::new();
-                self.files_creator.create_files(self.path_to_directory_input.clone(), self.depth, 0);
+                self.files_creator.create_files(self.path_to_directory_input.clone(), self.depth, 0, &self.files_content_variants);
                 Task::none()
             }
             MainWindowMessage::FileName(text) => {
