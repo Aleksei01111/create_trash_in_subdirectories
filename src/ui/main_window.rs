@@ -1,5 +1,5 @@
 ﻿use std::collections::HashMap;
-use iced::widget::{text, column, text_input, button, container, scrollable, row, space};
+use iced::widget::{text, column, text_input, button, container, scrollable, row, space, checkbox};
 use iced::{window, Task, Element};
 use iced::widget::scrollable::Direction;
 use crate::FilesCreator;
@@ -18,10 +18,12 @@ pub enum MainWindowMessage {
     ContentVariantEdit(i32, String),
     ContentVariantDelete(i32),
 
+    CloseAsDone(bool),
 }
 
+#[derive(PartialEq)]
 pub enum MainWindowOutputMessage {
-
+    Close,
 }
 
 pub struct MainWindow {
@@ -30,6 +32,7 @@ pub struct MainWindow {
     pub path_to_directory_input: String,
     pub depth_str: String,
     pub depth: i32,
+    pub close_as_done: bool,
 
     pub files_content_variants: HashMap<i32, String>,
 
@@ -45,6 +48,7 @@ impl MainWindow {
             depth_str: String::new(),
             files_content_variants: HashMap::new(),
             depth: 0,
+            close_as_done: false,
         }
     }
 
@@ -66,6 +70,11 @@ impl MainWindow {
             MainWindowMessage::StartGenerateFiles => {
                 self.files_creator.out_string = String::new();
                 self.files_creator.create_files(self.path_to_directory_input.clone(), self.depth, 0, &self.files_content_variants);
+
+                if self.close_as_done {
+                    return Task::done(MainWindowOutputMessage::Close)
+                }
+
                 Task::none()
             }
             MainWindowMessage::FileName(text) => {
@@ -94,6 +103,10 @@ impl MainWindow {
             }
             MainWindowMessage::ContentVariantDelete(id) => {
                 self.files_content_variants.remove(&id);
+                Task::none()
+            }
+            MainWindowMessage::CloseAsDone(new_value) => {
+                self.close_as_done = new_value;
                 Task::none()
             }
         }
@@ -126,6 +139,7 @@ impl MainWindow {
             text_input("Путь до папки", &self.path_to_directory_input).on_input(MainWindowMessage::PathToDirectory),
             text_input("Имя для каждого файла", &self.files_creator.filename).on_input(MainWindowMessage::FileName),
             text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
+            checkbox(self.close_as_done).label("Закрыть по завершении").on_toggle(MainWindowMessage::CloseAsDone),
             button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
             self.scrollable_text_output()
         ].spacing(10).into()

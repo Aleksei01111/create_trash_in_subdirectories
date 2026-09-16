@@ -44,6 +44,13 @@ impl App {
 
                 Task::none()
             }
+            AppMessage::MainWindowOutput(out) => {
+                if out == MainWindowOutputMessage::Close {
+                    return iced::exit()
+                }
+
+                Task::none()
+            }
         }
     }
 
