@@ -11,7 +11,10 @@ pub struct FilesCreatorConfiguration {
     pub file_creation_delay_in_milliseconds_high_limit: u64,
     pub path_to_directory: String,
     pub depth: i32,
-    pub content_variants: HashMap<i32, String>
+    pub content_variants: HashMap<i32, String>,
+
+    pub contain_exclusions: HashMap<i32, String>,
+    pub contain_exclusions_ignore_case: bool,
 }
 
 impl FilesCreatorConfiguration {
@@ -25,7 +28,9 @@ impl FilesCreatorConfiguration {
             file_creation_delay_in_milliseconds_high_limit,
             path_to_directory,
             depth,
-            content_variants: HashMap::new()
+            content_variants: HashMap::new(),
+            contain_exclusions: HashMap::new(),
+            contain_exclusions_ignore_case: true,
         }
     }
 }
@@ -87,6 +92,11 @@ fn get_delay(configuration: &FilesCreatorConfiguration) -> u64 {
 fn create_file(directory_path: String, filename: &String, configuration: &FilesCreatorConfiguration) -> String {
     let path_to_file = format!("{}\\{}", directory_path, filename);
 
+    if !configuration.contain_exclusions.is_empty() &&
+            string_contain_any_substring(&path_to_file, &configuration.contain_exclusions, configuration.contain_exclusions_ignore_case) {
+        return String::from(format!("skipped {}", path_to_file).as_str());
+    }
+
     let file_result = fs::File::create(&path_to_file);
     let mut out = format!("file created in\t{}", path_to_file);
 
@@ -112,4 +122,17 @@ fn get_random_item(items: &HashMap<i32, String>) -> String {
     }
 
     String::new()
+}
+
+fn string_contain_any_substring(string: &String, substrings: &HashMap<i32, String>, ignore_case: bool) -> bool {
+    for (_, substring) in substrings {
+        if ignore_case && string.to_lowercase().contains(substring) {
+            return true;
+        }
+        else if !ignore_case && string.contains(substring) {
+            return false;
+        }
+    }
+
+    false
 }

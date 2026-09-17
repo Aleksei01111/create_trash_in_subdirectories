@@ -21,6 +21,11 @@ pub enum MainWindowMessage {
 
     FileCreationDelayLowLimit(String),
     FileCreationDelayHighLimit(String),
+
+    ContainExclusionVariantEdit(i32, String),
+    ContainExclusionVariantRemove(i32),
+    AddContainExclusionVariant,
+    ContainExclusionsIgnoreCaseToggle(bool),
 }
 
 #[derive(PartialEq)]
@@ -31,9 +36,9 @@ pub enum MainWindowOutputMessage {
 pub struct MainWindow {
     pub id: window::Id,
 
-    pub depth_str: String,
-    pub file_creation_delay_in_milliseconds_low_limit_str: String,
-    pub file_creation_delay_in_milliseconds_high_limit_str: String,
+    depth_str: String,
+    file_creation_delay_in_milliseconds_low_limit_str: String,
+    file_creation_delay_in_milliseconds_high_limit_str: String,
 
     pub close_as_done: bool,
 
@@ -127,6 +132,30 @@ impl MainWindow {
                 }
                 Task::none()
             }
+            MainWindowMessage::ContainExclusionVariantEdit(id, new_value) => {
+                if new_value.len() == 0 {
+                    self.files_creator_configuration.contain_exclusions.remove(&id);
+                }
+                else if let Some(value) = self.files_creator_configuration.contain_exclusions.get_mut(&id) {
+                    *value = new_value;
+                }
+
+                Task::none()
+            }
+            MainWindowMessage::ContainExclusionVariantRemove(id) => {
+                self.files_creator_configuration.contain_exclusions.remove(&id);
+                Task::none()
+            }
+            MainWindowMessage::AddContainExclusionVariant => {
+                let id = self.files_creator_configuration.contain_exclusions.len() as i32;
+                self.files_creator_configuration.contain_exclusions.insert(id, String::new());
+
+                Task::none()
+            }
+            MainWindowMessage::ContainExclusionsIgnoreCaseToggle(new_value) => {
+                self.files_creator_configuration.contain_exclusions_ignore_case = new_value;
+                Task::none()
+            }
         }
     }
 
@@ -168,9 +197,33 @@ impl MainWindow {
                     &self.file_creation_delay_in_milliseconds_high_limit_str).on_input(MainWindowMessage::FileCreationDelayHighLimit),
             ].spacing(10),
 
+            self.directory_contain_exclusions(),
+
             button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
             self.scrollable_text_output()
         ].spacing(10).into()
+    }
+
+    fn directory_contain_exclusions(&self) -> Element<'_, MainWindowMessage> {
+        let content = self.files_creator_configuration.contain_exclusions.iter().map(|(id, string)| {
+            row![
+                text_input("исключение", string).on_input(move |val| {MainWindowMessage::ContainExclusionVariantEdit(*id, val)}),
+                button("Удалить").on_press(MainWindowMessage::ContainExclusionVariantRemove(*id)),
+            ].into()
+        });
+
+        column![
+            row![
+                text("Исключения (путь должен содержать)"),
+                button("Добавить").on_press(MainWindowMessage::AddContainExclusionVariant)
+            ].spacing(10),
+
+            checkbox(self.files_creator_configuration.contain_exclusions_ignore_case)
+                .label("Игнорировать регистр")
+                .on_toggle(MainWindowMessage::ContainExclusionsIgnoreCaseToggle),
+
+            scrollable(column(content))
+        ].into()
     }
 
     fn scrollable_text_output(&self) -> Element<'_, MainWindowMessage> {
