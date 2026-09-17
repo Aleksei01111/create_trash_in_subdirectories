@@ -7,7 +7,8 @@ use rand::RngExt;
 
 pub struct FilesCreatorConfiguration {
     pub filename: String,
-    pub file_creation_delay_in_milliseconds: u64,
+    pub file_creation_delay_in_milliseconds_low_limit: u64,
+    pub file_creation_delay_in_milliseconds_high_limit: u64,
     pub path_to_directory: String,
     pub depth: i32,
     pub content_variants: HashMap<i32, String>
@@ -15,11 +16,13 @@ pub struct FilesCreatorConfiguration {
 
 impl FilesCreatorConfiguration {
     pub fn new(filename: String,
-               file_creation_delay_in_milliseconds: u64,
+               file_creation_delay_in_milliseconds_low_limit: u64,
+               file_creation_delay_in_milliseconds_high_limit: u64,
                path_to_directory: String, depth: i32) -> Self {
         Self {
             filename,
-            file_creation_delay_in_milliseconds,
+            file_creation_delay_in_milliseconds_low_limit,
+            file_creation_delay_in_milliseconds_high_limit,
             path_to_directory,
             depth,
             content_variants: HashMap::new()
@@ -47,7 +50,7 @@ impl<'a> FilesCreator {
             return;
         }
 
-        let entities = fs::read_dir(&configuration.path_to_directory);
+        let entities = fs::read_dir(&current_directory_path);
         if entities.is_err() {
             return;
         }
@@ -67,6 +70,9 @@ impl<'a> FilesCreator {
         let file_result = fs::File::create(&path_to_file);
         let mut out = format!("file created in\t{}", path_to_file);
 
+        if self.out_string.len() != 0 {
+            self.out_string.push_str("\n");
+        }
 
         if file_result.is_ok() {
             let random_content = get_random_item(&configuration.content_variants);
@@ -74,12 +80,16 @@ impl<'a> FilesCreator {
             out.push_str(format!("\nwrite in\t{}\n", path_to_file).as_str());
         }
 
-        if self.out_string.len() != 0 {
-            self.out_string.push_str("\n");
+        let mut delay = 0;
+        if configuration.file_creation_delay_in_milliseconds_low_limit != configuration.file_creation_delay_in_milliseconds_high_limit {
+            delay = rand::rng().random_range(configuration.file_creation_delay_in_milliseconds_low_limit..configuration.file_creation_delay_in_milliseconds_high_limit);
         }
+
+        out.push_str(format!("delay: {}\n", delay).as_str());
+
         self.out_string.push_str(out.as_str());
 
-        thread::sleep(Duration::from_millis(configuration.file_creation_delay_in_milliseconds));
+        thread::sleep(Duration::from_millis(delay));
     }
 }
 

@@ -19,7 +19,8 @@ pub enum MainWindowMessage {
 
     CloseAsDone(bool),
 
-    FileCreationDelay(String),
+    FileCreationDelayLowLimit(String),
+    FileCreationDelayHighLimit(String),
 }
 
 #[derive(PartialEq)]
@@ -31,7 +32,8 @@ pub struct MainWindow {
     pub id: window::Id,
 
     pub depth_str: String,
-    pub file_creation_delay_in_milliseconds_str: String,
+    pub file_creation_delay_in_milliseconds_low_limit_str: String,
+    pub file_creation_delay_in_milliseconds_high_limit_str: String,
 
     pub close_as_done: bool,
 
@@ -45,9 +47,10 @@ impl MainWindow {
             id,
             files_creator: FilesCreator::new(),
             depth_str: String::new(),
-            file_creation_delay_in_milliseconds_str: String::new(),
+            file_creation_delay_in_milliseconds_low_limit_str: String::new(),
+            file_creation_delay_in_milliseconds_high_limit_str: String::new(),
             close_as_done: false,
-            files_creator_configuration: FilesCreatorConfiguration::new(String::from(""), 100, String::from(""), 0),
+            files_creator_configuration: FilesCreatorConfiguration::new(String::from(""), 100, 500, String::from(""), 0),
         }
     }
 
@@ -108,11 +111,19 @@ impl MainWindow {
                 self.close_as_done = new_value;
                 Task::none()
             }
-            MainWindowMessage::FileCreationDelay(new_value) => {
+            MainWindowMessage::FileCreationDelayLowLimit(new_value) => {
                 let parsed = new_value.parse::<u64>();
                 if !parsed.is_err() {
-                    self.files_creator_configuration.file_creation_delay_in_milliseconds = parsed.unwrap();
-                    self.file_creation_delay_in_milliseconds_str = new_value;
+                    self.files_creator_configuration.file_creation_delay_in_milliseconds_low_limit = parsed.unwrap();
+                    self.file_creation_delay_in_milliseconds_low_limit_str = new_value;
+                }
+                Task::none()
+            }
+            MainWindowMessage::FileCreationDelayHighLimit(new_value) => {
+                let parsed = new_value.parse::<u64>();
+                if !parsed.is_err() {
+                    self.files_creator_configuration.file_creation_delay_in_milliseconds_high_limit = parsed.unwrap();
+                    self.file_creation_delay_in_milliseconds_high_limit_str = new_value;
                 }
                 Task::none()
             }
@@ -141,13 +152,22 @@ impl MainWindow {
             .into()
     }
 
-    fn let_side(&self) -> iced::Element<'_, MainWindowMessage> {
+    fn let_side(&self) -> Element<'_, MainWindowMessage> {
         column![
             text_input("Путь до папки", &self.files_creator_configuration.path_to_directory).on_input(MainWindowMessage::PathToDirectory),
             text_input("Имя для каждого файла", &self.files_creator_configuration.filename).on_input(MainWindowMessage::FileName),
             text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
             checkbox(self.close_as_done).label("Закрыть по завершении").on_toggle(MainWindowMessage::CloseAsDone),
-            text_input("Задержка между созданием файла (мс)", &self.file_creation_delay_in_milliseconds_str).on_input(MainWindowMessage::FileCreationDelay),
+
+            text("Задержка между созданием файла (мс)"),
+
+            row![
+                text_input("нижняя граница",
+                    &self.file_creation_delay_in_milliseconds_low_limit_str).on_input(MainWindowMessage::FileCreationDelayLowLimit),
+                text_input("верхняя граница",
+                    &self.file_creation_delay_in_milliseconds_high_limit_str).on_input(MainWindowMessage::FileCreationDelayHighLimit),
+            ].spacing(10),
+
             button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
             self.scrollable_text_output()
         ].spacing(10).into()
