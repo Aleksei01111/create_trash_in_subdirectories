@@ -4,36 +4,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
 use rand::RngExt;
-
-pub struct FilesCreatorConfiguration {
-    pub filename: String,
-    pub file_creation_delay_in_milliseconds_low_limit: u64,
-    pub file_creation_delay_in_milliseconds_high_limit: u64,
-    pub path_to_directory: String,
-    pub depth: i32,
-    pub content_variants: HashMap<i32, String>,
-
-    pub contain_exclusions: HashMap<i32, String>,
-    pub contain_exclusions_ignore_case: bool,
-}
-
-impl FilesCreatorConfiguration {
-    pub fn new(filename: String,
-               file_creation_delay_in_milliseconds_low_limit: u64,
-               file_creation_delay_in_milliseconds_high_limit: u64,
-               path_to_directory: String, depth: i32) -> Self {
-        Self {
-            filename,
-            file_creation_delay_in_milliseconds_low_limit,
-            file_creation_delay_in_milliseconds_high_limit,
-            path_to_directory,
-            depth,
-            content_variants: HashMap::new(),
-            contain_exclusions: HashMap::new(),
-            contain_exclusions_ignore_case: true,
-        }
-    }
-}
+use crate::service::files_creator_configuration::FilesCreatorConfiguration;
 
 pub struct FilesCreator {
     pub out_string: String,

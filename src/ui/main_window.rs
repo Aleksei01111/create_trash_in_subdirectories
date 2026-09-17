@@ -1,7 +1,8 @@
 ﻿use iced::widget::{text, column, text_input, button, container, scrollable, row, space, checkbox};
 use iced::{window, Task, Element};
 use iced::widget::scrollable::Direction;
-use crate::service::files_creator::{FilesCreator, FilesCreatorConfiguration};
+use crate::service::files_creator::{FilesCreator};
+use crate::service::files_creator_configuration::{FilesCreatorConfiguration, FilesCreatorConfigurationSaver};
 
 #[derive(Debug, Clone)]
 pub enum MainWindowMessage {
@@ -26,6 +27,9 @@ pub enum MainWindowMessage {
     ContainExclusionVariantRemove(i32),
     AddContainExclusionVariant,
     ContainExclusionsIgnoreCaseToggle(bool),
+
+    SaveConfigurationToFile,
+    LoadConfigurationFromFile,
 }
 
 #[derive(PartialEq)]
@@ -44,6 +48,8 @@ pub struct MainWindow {
 
     files_creator: FilesCreator,
     files_creator_configuration: FilesCreatorConfiguration,
+
+    files_creator_configuration_path: String,
 }
 
 impl MainWindow {
@@ -56,6 +62,7 @@ impl MainWindow {
             file_creation_delay_in_milliseconds_high_limit_str: String::new(),
             close_as_done: false,
             files_creator_configuration: FilesCreatorConfiguration::new(String::from(""), 100, 500, String::from(""), 0),
+            files_creator_configuration_path: String::from("config.lenovo"),
         }
     }
 
@@ -156,6 +163,25 @@ impl MainWindow {
                 self.files_creator_configuration.contain_exclusions_ignore_case = new_value;
                 Task::none()
             }
+            MainWindowMessage::SaveConfigurationToFile => {
+                let _ = FilesCreatorConfigurationSaver::save_to_file(&self.files_creator_configuration_path, &self.files_creator_configuration);
+
+                Task::none()
+            }
+            MainWindowMessage::LoadConfigurationFromFile => {
+                let result = FilesCreatorConfigurationSaver::load_from_file(&self.files_creator_configuration_path);
+
+                if result.is_ok() {
+                    self.files_creator_configuration = result.unwrap();
+                    self.depth_str = self.files_creator_configuration.depth.to_string();
+                    self.file_creation_delay_in_milliseconds_low_limit_str =
+                        self.files_creator_configuration.file_creation_delay_in_milliseconds_low_limit.to_string();
+                    self.file_creation_delay_in_milliseconds_high_limit_str =
+                        self.files_creator_configuration.file_creation_delay_in_milliseconds_high_limit.to_string();
+                }
+
+                Task::none()
+            }
         }
     }
 
@@ -182,7 +208,7 @@ impl MainWindow {
     }
 
     fn let_side(&self) -> Element<'_, MainWindowMessage> {
-        column![
+        let content = column![
             text_input("Путь до папки", &self.files_creator_configuration.path_to_directory).on_input(MainWindowMessage::PathToDirectory),
             text_input("Имя для каждого файла", &self.files_creator_configuration.filename).on_input(MainWindowMessage::FileName),
             text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
@@ -200,8 +226,18 @@ impl MainWindow {
             self.directory_contain_exclusions(),
 
             button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
-            self.scrollable_text_output()
-        ].spacing(10).into()
+
+            row![
+                button("Загрузить конфигурацию").on_press(MainWindowMessage::LoadConfigurationFromFile),
+                button("Сохранить конфигурацию").on_press(MainWindowMessage::SaveConfigurationToFile),
+            ].spacing(15),
+
+            self.scrollable_text_output(),
+        ].spacing(10);
+
+        scrollable(
+            content
+        ).into()
     }
 
     fn directory_contain_exclusions(&self) -> Element<'_, MainWindowMessage> {
