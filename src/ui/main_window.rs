@@ -72,6 +72,7 @@ impl MainWindow {
             space().width(20),
             self.right_side(),
         ])
+            .padding(15)
             .into()
     }
 
@@ -214,6 +215,8 @@ impl MainWindow {
             text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
             checkbox(self.close_as_done).label("Закрыть по завершении").on_toggle(MainWindowMessage::CloseAsDone),
 
+            space().height(20),
+
             text("Задержка между созданием файла (мс)"),
 
             row![
@@ -223,9 +226,13 @@ impl MainWindow {
                     &self.file_creation_delay_in_milliseconds_high_limit_str).on_input(MainWindowMessage::FileCreationDelayHighLimit),
             ].spacing(10),
 
+            space().height(20),
+
             self.directory_contain_exclusions(),
 
             button("Начать").on_press(MainWindowMessage::StartGenerateFiles),
+
+            space().height(20),
 
             row![
                 button("Загрузить конфигурацию").on_press(MainWindowMessage::LoadConfigurationFromFile),
