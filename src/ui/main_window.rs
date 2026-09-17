@@ -30,6 +30,8 @@ pub enum MainWindowMessage {
 
     SaveConfigurationToFile,
     LoadConfigurationFromFile,
+
+    NotCreateFilesEdited(bool),
 }
 
 #[derive(PartialEq)]
@@ -50,6 +52,8 @@ pub struct MainWindow {
     files_creator_configuration: FilesCreatorConfiguration,
 
     files_creator_configuration_path: String,
+
+    not_create_files: bool,
 }
 
 impl MainWindow {
@@ -63,6 +67,7 @@ impl MainWindow {
             close_as_done: false,
             files_creator_configuration: FilesCreatorConfiguration::new(String::from(""), 100, 500, String::from(""), 0),
             files_creator_configuration_path: String::from("config.lenovo"),
+            not_create_files: false,
         }
     }
 
@@ -84,7 +89,7 @@ impl MainWindow {
             },
             MainWindowMessage::StartGenerateFiles => {
                 self.files_creator.out_string = String::new();
-                self.files_creator.create_files(0, self.files_creator_configuration.path_to_directory.clone(), &self.files_creator_configuration);
+                self.files_creator.create_files(0, self.files_creator_configuration.path_to_directory.clone(), &self.files_creator_configuration, self.not_create_files);
 
                 if self.close_as_done {
                     return Task::done(MainWindowOutputMessage::Close)
@@ -183,6 +188,10 @@ impl MainWindow {
 
                 Task::none()
             }
+            MainWindowMessage::NotCreateFilesEdited(new_value) => {
+                self.not_create_files = new_value;
+                Task::none()
+            }
         }
     }
 
@@ -210,10 +219,18 @@ impl MainWindow {
 
     fn let_side(&self) -> Element<'_, MainWindowMessage> {
         let content = column![
+            checkbox(self.not_create_files)
+                .label("Не создавать файлы")
+                .on_toggle(MainWindowMessage::NotCreateFilesEdited),
+            checkbox(self.close_as_done)
+                .label("Закрыть по завершении")
+                .on_toggle(MainWindowMessage::CloseAsDone),
+
+            space().height(20),
+
             text_input("Путь до папки", &self.files_creator_configuration.path_to_directory).on_input(MainWindowMessage::PathToDirectory),
             text_input("Имя для каждого файла", &self.files_creator_configuration.filename).on_input(MainWindowMessage::FileName),
             text_input("Глубина", &self.depth_str).on_input(MainWindowMessage::Depth),
-            checkbox(self.close_as_done).label("Закрыть по завершении").on_toggle(MainWindowMessage::CloseAsDone),
 
             space().height(20),
 

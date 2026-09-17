@@ -17,7 +17,7 @@ impl<'a> FilesCreator {
         }
     }
 
-    pub fn create_files(&mut self, current_depth: i32, current_directory_path: String, configuration: &'a FilesCreatorConfiguration) {
+    pub fn create_files(&mut self, current_depth: i32, current_directory_path: String, configuration: &'a FilesCreatorConfiguration, do_not_create_files: bool) {
         if current_depth > configuration.depth {
             return;
         }
@@ -37,11 +37,11 @@ impl<'a> FilesCreator {
             }
 
             if let Ok(e) = entry && e.file_type().unwrap().is_dir() {
-                self.create_files(current_depth + 1, e.path().to_str().unwrap().to_string(), configuration);
+                self.create_files(current_depth + 1, e.path().to_str().unwrap().to_string(), configuration, do_not_create_files);
             }
         }
 
-        self.out_string.push_str(create_file(current_directory_path, &configuration.filename, &configuration).as_str());
+        self.out_string.push_str(create_file(current_directory_path, &configuration.filename, &configuration, do_not_create_files).as_str());
 
         let delay = get_delay(&configuration);
 
@@ -60,8 +60,12 @@ fn get_delay(configuration: &FilesCreatorConfiguration) -> u64 {
     delay
 }
 
-fn create_file(directory_path: String, filename: &String, configuration: &FilesCreatorConfiguration) -> String {
+fn create_file(directory_path: String, filename: &String, configuration: &FilesCreatorConfiguration, do_not_create_files: bool) -> String {
     let path_to_file = format!("{}\\{}", directory_path, filename);
+
+    if do_not_create_files {
+        return String::from(format!("skipped {} \'not create\'\n", path_to_file).as_str());
+    }
 
     if !configuration.contain_exclusions.is_empty() &&
             string_contain_any_substring(&path_to_file, &configuration.contain_exclusions, configuration.contain_exclusions_ignore_case) {
