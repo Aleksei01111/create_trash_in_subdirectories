@@ -65,32 +65,38 @@ impl<'a> FilesCreator {
             }
         }
 
-        let path_to_file = format!("{}\\{}", current_directory_path, configuration.filename);
+        self.out_string.push_str(create_file(current_directory_path, &configuration.filename, &configuration).as_str());
 
-        let file_result = fs::File::create(&path_to_file);
-        let mut out = format!("file created in\t{}", path_to_file);
+        let delay = get_delay(&configuration);
 
-        if self.out_string.len() != 0 {
-            self.out_string.push_str("\n");
-        }
-
-        if file_result.is_ok() {
-            let random_content = get_random_item(&configuration.content_variants);
-            file_result.unwrap().write_all(random_content.as_bytes()).unwrap();
-            out.push_str(format!("\nwrite in\t{}\n", path_to_file).as_str());
-        }
-
-        let mut delay = 0;
-        if configuration.file_creation_delay_in_milliseconds_low_limit != configuration.file_creation_delay_in_milliseconds_high_limit {
-            delay = rand::rng().random_range(configuration.file_creation_delay_in_milliseconds_low_limit..configuration.file_creation_delay_in_milliseconds_high_limit);
-        }
-
-        out.push_str(format!("delay: {}\n", delay).as_str());
-
-        self.out_string.push_str(out.as_str());
+        self.out_string.push_str(format!("delay: {}\n", delay).as_str());
 
         thread::sleep(Duration::from_millis(delay));
     }
+}
+
+fn get_delay(configuration: &FilesCreatorConfiguration) -> u64 {
+    let mut delay = 0;
+    if configuration.file_creation_delay_in_milliseconds_low_limit != configuration.file_creation_delay_in_milliseconds_high_limit {
+        delay = rand::rng().random_range(configuration.file_creation_delay_in_milliseconds_low_limit..configuration.file_creation_delay_in_milliseconds_high_limit);
+    }
+
+    delay
+}
+
+fn create_file(directory_path: String, filename: &String, configuration: &FilesCreatorConfiguration) -> String {
+    let path_to_file = format!("{}\\{}", directory_path, filename);
+
+    let file_result = fs::File::create(&path_to_file);
+    let mut out = format!("file created in\t{}", path_to_file);
+
+    if file_result.is_ok() {
+        let random_content = get_random_item(&configuration.content_variants);
+        file_result.unwrap().write_all(random_content.as_bytes()).unwrap();
+        out.push_str(format!("\nwrite in\t{}\n", path_to_file).as_str());
+    }
+
+    out
 }
 
 fn get_random_item(items: &HashMap<i32, String>) -> String {
