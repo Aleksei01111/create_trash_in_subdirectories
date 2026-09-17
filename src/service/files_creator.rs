@@ -5,31 +5,49 @@ use std::path::Path;
 use std::time::Duration;
 use rand::RngExt;
 
-pub struct FilesCreator {
-    pub out_string: String,
+pub struct FilesCreatorConfiguration {
     pub filename: String,
     pub file_creation_delay_in_milliseconds: u64,
+    pub path_to_directory: String,
+    pub depth: i32,
+    pub content_variants: HashMap<i32, String>
 }
 
-impl FilesCreator {
+impl FilesCreatorConfiguration {
+    pub fn new(filename: String,
+               file_creation_delay_in_milliseconds: u64,
+               path_to_directory: String, depth: i32) -> Self {
+        Self {
+            filename,
+            file_creation_delay_in_milliseconds,
+            path_to_directory,
+            depth,
+            content_variants: HashMap::new()
+        }
+    }
+}
+
+pub struct FilesCreator {
+    pub out_string: String,
+}
+
+impl<'a> FilesCreator {
     pub fn new() -> Self {
         Self {
             out_string: String::new(),
-            filename: String::new(),
-            file_creation_delay_in_milliseconds: 100,
         }
     }
 
-    pub fn create_files(&mut self, path_to_directory: String, depth: i32, current_depth: i32, content_variants: &HashMap<i32, String>) {
-        if current_depth > depth {
+    pub fn create_files(&mut self, current_depth: i32, current_directory_path: String, configuration: &'a FilesCreatorConfiguration) {
+        if current_depth > configuration.depth {
             return;
         }
 
-        if !Path::new(path_to_directory.as_str()).exists() {
+        if !Path::new(current_directory_path.as_str()).exists() {
             return;
         }
 
-        let entities = fs::read_dir(&path_to_directory);
+        let entities = fs::read_dir(&configuration.path_to_directory);
         if entities.is_err() {
             return;
         }
@@ -40,18 +58,18 @@ impl FilesCreator {
             }
 
             if let Ok(e) = entry && e.file_type().unwrap().is_dir() {
-                self.create_files(e.path().to_str().unwrap().to_string(), depth, current_depth + 1, content_variants);
+                self.create_files(current_depth + 1, e.path().to_str().unwrap().to_string(), configuration);
             }
         }
 
-        let path_to_file = format!("{}\\{}", path_to_directory, self.filename);
+        let path_to_file = format!("{}\\{}", current_directory_path, configuration.filename);
 
         let file_result = fs::File::create(&path_to_file);
         let mut out = format!("file created in\t{}", path_to_file);
 
 
         if file_result.is_ok() {
-            let random_content = get_random_item(content_variants);
+            let random_content = get_random_item(&configuration.content_variants);
             file_result.unwrap().write_all(random_content.as_bytes()).unwrap();
             out.push_str(format!("\nwrite in\t{}\n", path_to_file).as_str());
         }
@@ -61,7 +79,7 @@ impl FilesCreator {
         }
         self.out_string.push_str(out.as_str());
 
-        thread::sleep(Duration::from_millis(self.file_creation_delay_in_milliseconds));
+        thread::sleep(Duration::from_millis(configuration.file_creation_delay_in_milliseconds));
     }
 }
 

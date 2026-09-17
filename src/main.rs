@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 mod ui;
 mod service;
+mod db;
 
 use ui::app::App;
 
