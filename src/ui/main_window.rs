@@ -3,6 +3,7 @@ use iced::{window, Task, Element};
 use iced::widget::scrollable::Direction;
 use crate::service::files_creator::{FilesCreator};
 use crate::service::files_creator_configuration::{FilesCreatorConfiguration, FilesCreatorConfigurationSaver};
+use crate::utils::modal;
 
 #[derive(Debug, Clone)]
 pub enum MainWindowMessage {
@@ -32,6 +33,8 @@ pub enum MainWindowMessage {
     LoadConfigurationFromFile,
 
     NotCreateFilesEdited(bool),
+
+    MessageBoxClose,
 }
 
 #[derive(PartialEq)]
@@ -54,6 +57,9 @@ pub struct MainWindow {
     files_creator_configuration_path: String,
 
     not_create_files: bool,
+
+    message_box_text: Option<String>,
+    message_box_header: Option<String>,
 }
 
 impl MainWindow {
@@ -68,17 +74,30 @@ impl MainWindow {
             files_creator_configuration: FilesCreatorConfiguration::new(String::from(""), 100, 500, String::from(""), 0),
             files_creator_configuration_path: String::from("config.lenovo"),
             not_create_files: false,
+            message_box_text: None,
+            message_box_header: None,
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, MainWindowMessage> {
-        container(row![
+        let content = container(row![
             self.let_side(),
             space().width(20),
             self.right_side(),
         ])
-            .padding(15)
-            .into()
+            .height(iced::Length::Fill)
+            .padding(15);
+
+        if let Some(message_text) = &self.message_box_text && let Some (message_header) = &self.message_box_header {
+            let modal = modal::create_modal_view(message_header, message_text, MainWindowMessage::MessageBoxClose);
+
+            modal::show_modal(content, modal, MainWindowMessage::MessageBoxClose)
+        }
+
+        else {
+            content.into()
+        }
+
     }
 
     pub fn update(&mut self, message: MainWindowMessage) -> Task<MainWindowOutputMessage> {
@@ -170,7 +189,18 @@ impl MainWindow {
                 Task::none()
             }
             MainWindowMessage::SaveConfigurationToFile => {
-                let _ = FilesCreatorConfigurationSaver::save_to_file(&self.files_creator_configuration_path, &self.files_creator_configuration);
+                let result = FilesCreatorConfigurationSaver::save_to_file(&self.files_creator_configuration_path, &self.files_creator_configuration);
+
+                self.message_box_header = Some(String::from("Внимание"));
+
+                match result {
+                    Ok(_) => {
+                        self.message_box_text = Some(String::from("Конфигурация сохранена"));
+                    }
+                    Err(error) => {
+                        self.message_box_text = Some(error.to_string());
+                    }
+                }
 
                 Task::none()
             }
@@ -190,6 +220,12 @@ impl MainWindow {
             }
             MainWindowMessage::NotCreateFilesEdited(new_value) => {
                 self.not_create_files = new_value;
+                Task::none()
+            }
+            MainWindowMessage::MessageBoxClose => {
+                self.message_box_header = None;
+                self.message_box_text = None;
+
                 Task::none()
             }
         }

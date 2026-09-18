@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 mod ui;
 mod service;
+mod utils;
 
 use std::env;
 use ui::app::App;
